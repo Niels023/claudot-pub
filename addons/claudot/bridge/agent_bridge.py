@@ -1011,8 +1011,8 @@ class AgentBridge:
                         "category": category,
                         "message": (
                             f"The model's safety classifiers declined this request{cat_str}. "
-                            "Try rephrasing, or switch to Claude Opus 4.8 in Claudot Settings — "
-                            "it handles security- and biology-adjacent topics that Claude Fable 5 declines."
+                            "Try rephrasing, or switch to Claude Opus 5 in Claudot Settings — "
+                            "it handles security- and biology-adjacent topics that Claude Fable models decline."
                         )
                     }
                 })

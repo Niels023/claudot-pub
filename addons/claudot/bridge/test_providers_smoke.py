@@ -293,6 +293,27 @@ async def main() -> int:
     ok &= expect(OpenRouterProvider("k", "m", "s").base_url == "https://openrouter.ai/api/v1",
                  "default base URL is openrouter.ai")
 
+    print("== Claude model registry ==")
+    fable51 = providers.claude_model_info("claude-fable-5-1")
+    ok &= expect(fable51["in"] == 10.0 and fable51["out"] == 50.0, "fable-5-1 in/out pricing")
+    ok &= expect(fable51["context"] == 1_000_000, "fable-5-1 context 1M")
+    ok &= expect(fable51["thinking"] == "omit", "fable-5-1 omits thinking param")
+    ok &= expect(fable51.get("cache_read") == 0.25, "fable-5-1 explicit cache_read rate")
+    mythos51 = providers.claude_model_info("claude-mythos-5-1")
+    ok &= expect(mythos51.get("cache_read") == 0.25, "mythos-5-1 explicit cache_read rate")
+    sonnet5 = providers.claude_model_info("claude-sonnet-5")
+    ok &= expect(sonnet5["in"] == 2.0 and sonnet5["out"] == 10.0, "sonnet-5 repriced to 2.0/10.0")
+    # Dated/suffixed 5.1 id must resolve to the 5.1 entry (2.5% cache read),
+    # not the generic claude-fable fallback.
+    dated = providers.claude_model_info("claude-fable-5-1-20260901")
+    ok &= expect(dated.get("cache_read") == 0.25, "dated fable-5-1 keeps 2.5% cache-read via prefix order")
+    # cache-read rate: explicit for 5.1, computed 10% default otherwise.
+    ok &= expect(providers._cache_read_rate(fable51) == 0.25, "cache_read_rate uses explicit 5.1 rate")
+    ok &= expect(providers._cache_read_rate(providers.claude_model_info("claude-fable-5")) == 1.0,
+                 "cache_read_rate defaults to 10% of input (fable-5)")
+    ok &= expect(providers._cache_read_rate(providers._UNKNOWN_CLAUDE) is None,
+                 "cache_read_rate is None when input rate unknown")
+
     for s in servers:
         s.close()
         await s.wait_closed()

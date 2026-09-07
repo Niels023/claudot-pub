@@ -15,9 +15,10 @@ The `openrouter` backend is the OpenAI-compatible provider with a fixed base
 URL, app attribution headers, and usage accounting — OpenRouter's per-request
 `usage.cost` is surfaced as the message cost in the chat panel.
 
-The `anthropic` backend fully supports **Claude Fable 5** (always-on thinking,
-refusal stop reason, 1M context) as well as Opus 4.8/4.7/4.6, Sonnet 4.6, and
-Haiku 4.5, with prompt caching enabled for cost efficiency.
+The `anthropic` backend fully supports **Claude Fable 5.1** and **Fable 5**
+(always-on thinking, refusal stop reason, 1M context, discounted cache reads on
+5.1) as well as Opus 5, Sonnet 5, Opus 4.8/4.7/4.6, Sonnet 4.6, and Haiku 4.5,
+with prompt caching enabled for cost efficiency.
 
 ## Architecture
 

@@ -331,18 +331,29 @@ class CodexProvider:
     # Item -> event mapping
     # ------------------------------------------------------------------
 
+    # Item types that are intentionally not surfaced as tool activity (chat text,
+    # reasoning, review-mode transitions, ...). Anything not here and not handled
+    # below is treated as an unknown tool call and surfaced generically so new
+    # codex thread item types (e.g. GPT-6 Astra async tool calls) aren't silently
+    # dropped.
+    _NON_TOOL_ITEMS = frozenset({
+        "userMessage", "hookPrompt", "reasoning", "agentMessage",
+        "plan", "contextCompaction", "enteredReviewMode", "exitedReviewMode",
+        "imageGeneration", "imageView", "sleep",
+    })
+
     def _events_for_item(self, item: dict, started: bool) -> list[dict]:
         """Map a ThreadItem to zero or more tool_use events.
 
         We surface command / file-change / MCP-tool items as tool_use on
         item/started (so the UI shows activity promptly). agentMessage text is
-        handled by the caller on item/completed. Unknown item types are skipped.
+        handled by the caller on item/completed. Chat/reasoning items are skipped;
+        unrecognized item types are surfaced generically rather than dropped.
         """
         itype = item.get("type")
 
         # userMessage items are the echo of our own prompt — never surface them.
-        if itype in ("userMessage", "hookPrompt", "reasoning", "agentMessage",
-                     "plan", "contextCompaction", "enteredReviewMode", "exitedReviewMode"):
+        if itype in self._NON_TOOL_ITEMS:
             return []
 
         # Emit tool activity once, when the item starts.
@@ -378,10 +389,19 @@ class CodexProvider:
             return [{"type": "tool_use", "name": "web_search",
                      "input": {"query": item.get("query", "")}}]
 
-        # imageGeneration, imageView, sleep, subAgentActivity, collabAgentToolCall,
-        # and any future variants: skip gracefully.
-        logger.debug(f"Codex item type not surfaced as tool_use: {itype}")
-        return []
+        # Unknown / future item type (e.g. new async tool-call variants from
+        # newer models). Surface it generically so activity is visible instead of
+        # being silently dropped, carrying the raw type name and any args/command
+        # we can find. Never crash on an unexpected shape.
+        logger.info(f"Codex unknown thread item type surfaced generically: {itype}")
+        raw_input = {}
+        for key in ("arguments", "input", "command", "query"):
+            val = item.get(key)
+            if val is not None:
+                raw_input = val if isinstance(val, dict) else {key: val}
+                break
+        return [{"type": "tool_use", "name": str(itype) if itype else "unknown_tool",
+                 "input": raw_input}]
 
     def _usage_from_turn(self, turn: dict) -> Optional[dict]:
         """Extract usage from a turn/completed payload if it carries any.

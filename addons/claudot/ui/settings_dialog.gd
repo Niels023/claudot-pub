@@ -49,8 +49,9 @@ const PROVIDERS = [
 
 const CLAUDE_MODELS = [
 	{"id": "claude-opus-4-8", "label": "Claude Opus 4.8  —  recommended"},
+	{"id": "claude-fable-5-1", "label": "Claude Fable 5.1  —  most capable"},
 	{"id": "claude-opus-5", "label": "Claude Opus 5  —  newest Opus"},
-	{"id": "claude-fable-5", "label": "Claude Fable 5  —  most capable"},
+	{"id": "claude-fable-5", "label": "Claude Fable 5"},
 	{"id": "claude-sonnet-5", "label": "Claude Sonnet 5  —  fast + smart"},
 	{"id": "claude-opus-4-7", "label": "Claude Opus 4.7"},
 	{"id": "claude-opus-4-6", "label": "Claude Opus 4.6"},
@@ -59,6 +60,7 @@ const CLAUDE_MODELS = [
 ]
 
 const CODEX_MODELS = [
+	{"id": "gpt-6-astra", "label": "GPT-6 Astra  —  most capable"},
 	{"id": "gpt-5.6-sol", "label": "GPT-5.6 Sol  —  recommended"},
 	{"id": "gpt-5.6-terra", "label": "GPT-5.6 Terra  —  balanced"},
 	{"id": "gpt-5.6-luna", "label": "GPT-5.6 Luna  —  fast + affordable"},
@@ -66,6 +68,7 @@ const CODEX_MODELS = [
 ]
 
 const OPENAI_MODELS = [
+	{"id": "gpt-6-astra", "label": "GPT-6 Astra"},
 	{"id": "gpt-5.1", "label": "GPT-5.1"},
 	{"id": "gpt-5", "label": "GPT-5"},
 	{"id": "gpt-4.1", "label": "GPT-4.1"},
@@ -76,7 +79,9 @@ const OPENAI_MODELS = [
 # extends the dropdown with the full live catalog from OPENROUTER_MODELS_URL.
 const OPENROUTER_MODELS = [
 	{"id": "anthropic/claude-sonnet-5", "label": "Claude Sonnet 5  —  recommended"},
+	{"id": "anthropic/claude-fable-5-1", "label": "Claude Fable 5.1"},
 	{"id": "anthropic/claude-opus-5", "label": "Claude Opus 5"},
+	{"id": "openai/gpt-6-astra", "label": "GPT-6 Astra"},
 	{"id": "openai/gpt-5.6-terra", "label": "GPT-5.6 Terra"},
 	{"id": "openai/gpt-5.6-sol", "label": "GPT-5.6 Sol"},
 	{"id": "google/gemini-3-flash-preview", "label": "Gemini 3 Flash"},

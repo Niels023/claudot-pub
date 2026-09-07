@@ -45,14 +45,19 @@ ANTHROPIC_VERSION = "2023-06-01"
 MAX_TOOL_ITERATIONS = 25
 
 # Claude model catalog: context window, USD per MTok in/out, thinking config.
-# thinking: "omit"     — never send a thinking param (Fable 5: always-on; Haiku: unsupported)
+# thinking: "omit"     — never send a thinking param (Fable 5/5.1: always-on; Haiku: unsupported)
 #           "adaptive" — send {"type": "adaptive"}
+# cache_read: optional USD per MTok for cache-read input tokens. When absent it
+#   defaults to 10% of the model's input rate (Anthropic's standard cache-read
+#   discount). Fable/Mythos 5.1 price cache reads at 2.5% of input, so they set
+#   it explicitly. See _cache_read_rate().
 CLAUDE_MODELS = {
+    "claude-fable-5-1":  {"context": 1_000_000, "in": 10.0, "out": 50.0, "thinking": "omit", "cache_read": 0.25},
+    "claude-mythos-5-1": {"context": 1_000_000, "in": 10.0, "out": 50.0, "thinking": "omit", "cache_read": 0.25},
     "claude-fable-5":   {"context": 1_000_000, "in": 10.0, "out": 50.0, "thinking": "omit"},
     "claude-mythos-5":  {"context": 1_000_000, "in": 10.0, "out": 50.0, "thinking": "omit"},
     "claude-opus-5":    {"context": 1_000_000, "in": 5.0,  "out": 25.0, "thinking": "adaptive"},
-    # Sonnet 5 intro pricing is $2/$10 through 2026-08-31; standard rates listed here
-    "claude-sonnet-5":  {"context": 1_000_000, "in": 3.0,  "out": 15.0, "thinking": "adaptive"},
+    "claude-sonnet-5":  {"context": 1_000_000, "in": 2.0,  "out": 10.0, "thinking": "adaptive"},
     "claude-opus-4-8":  {"context": 1_000_000, "in": 5.0,  "out": 25.0, "thinking": "adaptive"},
     "claude-opus-4-7":  {"context": 1_000_000, "in": 5.0,  "out": 25.0, "thinking": "adaptive"},
     "claude-opus-4-6":  {"context": 1_000_000, "in": 5.0,  "out": 25.0, "thinking": "adaptive"},
@@ -60,13 +65,18 @@ CLAUDE_MODELS = {
     "claude-haiku-4-5": {"context": 200_000,  "in": 1.0,  "out": 5.0,  "thinking": "omit"},
 }
 
-# Prefix fallbacks for model IDs not in the catalog (future releases, dated IDs)
+# Prefix fallbacks for model IDs not in the catalog (future releases, dated IDs).
+# Ordered — first matching prefix wins — so the most specific variants must come
+# first (e.g. "claude-fable-5-1" ahead of "claude-fable" so a dated/suffixed
+# 5.1 id like "claude-fable-5-1-20260901" keeps its 2.5% cache-read rate).
 CLAUDE_PREFIX_DEFAULTS = [
+    ("claude-fable-5-1", {"context": 1_000_000, "in": 10.0, "out": 50.0, "thinking": "omit", "cache_read": 0.25}),
+    ("claude-mythos-5-1", {"context": 1_000_000, "in": 10.0, "out": 50.0, "thinking": "omit", "cache_read": 0.25}),
     ("claude-fable",    {"context": 1_000_000, "in": 10.0, "out": 50.0, "thinking": "omit"}),
     ("claude-mythos",   {"context": 1_000_000, "in": 10.0, "out": 50.0, "thinking": "omit"}),
     ("claude-opus-5",   {"context": 1_000_000, "in": 5.0,  "out": 25.0, "thinking": "adaptive"}),
     ("claude-opus-4",   {"context": 1_000_000, "in": 5.0,  "out": 25.0, "thinking": "adaptive"}),
-    ("claude-sonnet-5", {"context": 1_000_000, "in": 3.0,  "out": 15.0, "thinking": "adaptive"}),
+    ("claude-sonnet-5", {"context": 1_000_000, "in": 2.0,  "out": 10.0, "thinking": "adaptive"}),
     ("claude-sonnet-4", {"context": 1_000_000, "in": 3.0,  "out": 15.0, "thinking": "adaptive"}),
     ("claude-haiku-4",  {"context": 200_000,  "in": 1.0,  "out": 5.0,  "thinking": "omit"}),
 ]
@@ -81,6 +91,19 @@ def claude_model_info(model_id: str) -> dict:
         if model_id.startswith(prefix):
             return info
     return _UNKNOWN_CLAUDE
+
+
+def _cache_read_rate(info: dict) -> Optional[float]:
+    """USD per MTok for cache-read input tokens.
+
+    Uses the model's explicit "cache_read" rate when present, otherwise the
+    standard 10% of the input rate. Returns None when the input rate is unknown.
+    """
+    if info.get("in") is None:
+        return None
+    if "cache_read" in info:
+        return info["cache_read"]
+    return info["in"] * 0.1
 
 
 def context_window_for_model(model_id: str) -> int:
@@ -316,9 +339,10 @@ class AnthropicAPIProvider(DirectChatProvider):
             final_output_tokens += usage_out
             last_ctx_tokens = usage_in + cache_read + cache_write + usage_out
             if cost_known:
+                cache_read_rate = _cache_read_rate(info)
                 total_cost += (
                     usage_in * info["in"]
-                    + cache_read * info["in"] * 0.1
+                    + cache_read * cache_read_rate
                     + cache_write * info["in"] * 1.25
                     + usage_out * info["out"]
                 ) / 1_000_000
