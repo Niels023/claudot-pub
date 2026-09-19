@@ -71,7 +71,7 @@ func _ready() -> void:
 
 func _get_version_label() -> String:
 	## Read the installed version from plugin.cfg for the info bar button.
-	## A hardcoded constant drifts on every release: it still read "v3.0-beta"
+	## A hardcoded constant drifts on every release: it read "v3.1-beta"
 	## on a v3.1.0-beta install. plugin.cfg is the file the editor itself uses,
 	## so the label cannot disagree with the Plugins list.
 	var cfg := ConfigFile.new()
